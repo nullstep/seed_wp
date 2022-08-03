@@ -1,0 +1,32 @@
+<?php get_header(); ?>
+
+		<main class="row">
+<?php if (get_value('sidebar_on_feeds') == 'left'): ?>
+			<section class="col-sm-3">
+<?php if (is_active_sidebar('side-bar')) dynamic_sidebar('side-bar'); ?>
+
+			</section>
+<?php endif; ?>
+<?php if (get_value('sidebar_on_feeds') == 'none'): ?>
+			<section class="col-sm-12">
+<?php else: ?>
+			<section class="col-sm-9">
+<?php endif; ?>
+				<h2 class="feed-title"><?php single_cat_title(); ?></h2>
+<?php if (get_value('show_cat_desc') == 'yes'): ?>
+				<?php the_archive_description('<div class="description">', '</div>'); ?>
+<?php endif; ?>
+<?php get_template_part('loop'); ?>
+				<div class="pagination">
+<?php get_pagination(); ?>
+
+				</div>
+			</section>
+<?php if (get_value('sidebar_on_feeds') == 'right'): ?>
+			<section class="col-sm-3">
+<?php if (is_active_sidebar('side-bar')) dynamic_sidebar('side-bar'); ?>
+
+			</section>
+<?php endif; ?>
+		</main>
+<?php get_footer(); ?>
