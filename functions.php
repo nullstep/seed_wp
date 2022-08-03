@@ -934,138 +934,6 @@ function get_value($key) {
 	return _NWP[$key];
 }
 
-// pages/posts views count
-
-function get_views($id) {
-	$count_key = 'post_views_count';
-	$count = get_post_meta($id, $count_key, true);
-	if ($count == '') {
-		delete_post_meta($id, $count_key);
-		add_post_meta($id, $count_key, '0');
-		return "No Views";
-	}
-	return $count . ' View' . (($count != 1)? 's' : '');
-}
-
-function set_views($id) {
-	$ip = $_SERVER['REMOTE_ADDR'];
-	if (!in_array($ip, _IGNORE_SEED_WP)) {
-		$count_key = 'post_views_count';
-		$count = get_post_meta($id, $count_key, true);
-		if ($count == '') {
-			$count = 0;
-			delete_post_meta($id, $count_key);
-			add_post_meta($id, $count_key, '0');
-		}
-		else {
-			$count++;
-			update_post_meta($id, $count_key, $count);
-		}
-	}
-}
-
-function posts_column_views($defaults) {
-	$defaults['post_views'] = 'Views';
-	return $defaults;
-}
-
-function posts_custom_column_views($column_name, $id) {
-	if ($column_name === 'post_views') {
-		echo get_views(get_the_ID());
-	}
-}
-
-function pages_column_views($defaults) {
-	$defaults['page_views'] = 'Views';
-	return $defaults;
-}
-
-function pages_custom_column_views($column_name, $id) {
-	if ($column_name === 'page_views') {
-		echo get_views(get_the_ID());
-	}
-}
-
-// media downloads field
-
-function media_downloads($form_fields, $post) {
-	$form_fields['file_downloads'] = [
-		'label' => 'Downloads',
-		'input' => 'text',
-		'value' => get_post_meta($post->ID, 'file_downloads', true),
-		'helps' => ''
-	];
-	return $form_fields;
-}
- 
-function media_downloads_save($post, $attachment) {
-	if (isset($attachment['file_downloads'])) {
-		update_post_meta($post->ID, 'file_downloads', $attachment['file_downloads']);
-	}
-	return $post;
-}
-
-// page column class metadata
-
-function add_post_metadata() {
-	$screen = 'page';
-	add_meta_box(
-		'post_meta_box',
-		'Column Class',
-		'add_post_metadata_callback',
-		$screen,
-		'side',
-		'default',
-		null
-	);
-
-	$screen = 'code';
-	add_meta_box(
-		'code_meta_box',
-		'Code',
-		'add_code_metadata_callback',
-		$screen
-	);
-}
-
-function add_post_metadata_callback($post) {
-	wp_nonce_field('column_class_save_data', 'column_class_nonce');
-	$value = get_post_meta($post->ID, 'column_class', true);
-	echo '<input class="components-text-control__input" style="margin-top:8px" type="text" name="column_class" value="' . esc_attr($value) . '" placeholder="Enter Column Class...">';
-}
-
-function add_code_metadata_callback($post) {
-	//
-}
- 
-function save_post_metadata($post_id) {
-	if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-		return;
-	}
-	if (isset($_POST['post_type']) && 'page' == $_POST['post_type']) {
-		if (!current_user_can('edit_page', $post_id)) {
-			return;
-		}
-	}
-	else {
-		if (!current_user_can('edit_post', $post_id)) {
-			return;
-		}
-	}
-	if (isset($_POST['post_type'])) {
-		if (in_array($_POST['post_type'], ['page', 'post'])) {
-			if (!isset($_POST['column_class_nonce'])) {
-				return;
-			}
-			if (!wp_verify_nonce($_POST['column_class_nonce'], 'column_class_save_data')) {
-				return;
-			}
-			$data = sanitize_text_field($_POST['column_class']);
-			update_post_meta($post_id, 'column_class', $data);
-		}
-	}
-}
-
 // pagination
 
 function get_pagination() {
@@ -1138,39 +1006,6 @@ function logo_normal_shortcode($atts = [], $content = null, $tag = '') {
 
 function logo_contrast_shortcode($atts = [], $content = null, $tag = '') {
 	return '<img src="/uploads/' . _NWP['logo_image_contrast'] . '" class="logo ' . $content .'">';
-}
-
-// show child pages shortcode
-
-function children_shortcode() {
-	ob_start();
-	if (is_page()) {
-		$current_page_id = get_the_ID();
-		$child_pages = get_pages([ 
-			'child_of' => $current_page_id,
-			'sort_column' => 'menu_order',
-			'sort_order' => 'ASC'
-		]);
-		if ($child_pages) {
-			echo '<div class="row">';
-			foreach ($child_pages as $child_page) {
-				$page_id = $child_page->ID;
-				$page_link = get_permalink($page_id);
-				$page_title = $child_page->post_title;
-				$page_content = $child_page->post_content;
-				$page_col_class = get_post_meta($page_id, 'column_class', true);
-				$title_tag = get_value('show_page_titles');
-				$show = get_value('show_child_titles');
-				$page_title = '';
-				if (($show == 'yes') && ($title_tag != 'none')) {
-					$page_title = '<' . $title_tag . ' class="child-title">' . $child_page->post_title . '</' . $title_tag . '>';
-				}
-				?><div class="<?php echo $page_col_class; ?>"><?php echo $page_title; ?><p><?php echo do_shortcode($page_content); ?></p></div><?php
-			}
-			echo '</div>';
-		}
-	}
-	return ob_get_clean();
 }
 
 // add admin scripts
@@ -1314,19 +1149,12 @@ add_action('init', 'get_pagination');
 add_action('widgets_init', 'register_widget_stuff');
 
 add_action('admin_enqueue_scripts', 'add_scripts');
-add_action('manage_posts_custom_column', 'posts_custom_column_views', 5, 2);
-add_action('manage_pages_custom_column', 'pages_custom_column_views', 5, 2);
 add_action('add_meta_boxes', 'add_post_metadata');
 add_action('save_post', 'save_post_metadata');
 add_action('after_setup_theme', 'do_setup');
 
 // filters
 
-add_filter('manage_posts_columns', 'posts_column_views');
-add_filter('manage_pages_columns', 'pages_column_views');
-
-add_filter('attachment_fields_to_edit', 'media_downloads', 10, 2);
-add_filter('attachment_fields_to_save', 'media_downloads_save', 10, 2);
 add_filter('excerpt_length', 'set_excerpt_length', 999);
 add_filter('parent_file', 'set_current_menu');
 
@@ -1338,7 +1166,6 @@ remove_filter('wp_robots', 'wp_robots_max_image_preview_large');
 
 add_shortcode('logo-normal', 'logo_normal_shortcode');
 add_shortcode('logo-contrast', 'logo_contrast_shortcode');
-add_shortcode('children', 'children_shortcode');
 
 // boot theme
 
